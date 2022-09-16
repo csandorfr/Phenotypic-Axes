@@ -1,0 +1,21 @@
+ad,"Alzheimer's disease",Neurodegenerative
+adhd,ADHD,Neuropsychiatric
+anorexia,Anorexia,Neuropsychiatric
+asd,Autism disorder,Neuropsychiatric
+bmi,BMI,Anthropometric
+bp,Bipolar disorder,Neuropsychiatric
+cad2,Coronary artery disease,Metabolic
+cd,"Crohn's disease",Autoimmune
+fasting_glucose,Fasting Glucose,Metabolic
+fasting_insulin,Fasting insulin,Metabolic
+height,Height,Anthropometric
+ibd,Inflammatory Bowel Disease,Autoimmune
+lipid_hdl,"HDL(Lipid)",Metabolic
+lipid_ldl,"LDL(Lipid)",Metabolic
+lipid_tc,"TC(Lipid)",Metabolic
+lipid_tg,"TG(Lipid)",Metabolic
+pd,"Parkinson's disease",Neurodegenerative
+ra,Rheumatoid Arthritis,Autoimmune
+scz,Schizophrenia,Neuropsychiatric
+t2d,Type 2 diabetes,Metabolic
+uc,Ulcerative Colitis,Autoimmune

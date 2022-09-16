@@ -1,0 +1,43 @@
+---
+title: "Workshop Luxembourg Phenotypic Axes"
+author: "Cynthia Sandor"
+date: 'Last update: `r date()`'
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 5
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+      toc_depth: 5
+  pdf_document:
+    toc: yes
+---
+
+
+
+```{r setup, include=FALSE}
+rm(list = ls())
+setwd("/Users/dpag0499/Dropbox (UK Dementia Research Institute)/Sandor Lab/Backup/PROJECTS/PPMI/src/new_Figures/Fig4B")
+load('data_analysis_CSF.Rdata')
+```
+
+
+We can examine the relation between these markers and phenotypic axes
+
+```{r plot,echo=TRUE}
+library(ggplot2)
+my_theme = theme(
+  axis.title.x = element_text(size = 40),
+  axis.text.x = element_text(size = 40),
+  axis.text.y = element_text(size = 40),
+  axis.title.y = element_text(size = 40))
+
+p<-ggplot(df_axis_bio_marker_s_red, aes(x=value, y=log( as.numeric(as.character(TESTVALUE))),10) )+ geom_smooth(method='lm',formula=y~x)+ylab("log10 concentration CSF Aβ1-42")+xlab("Score Phenotypic Axis 1")+geom_point(aes(colour=factor(TESTNAME)),size=8)+ theme(legend.position = "none")
+p<-p+my_theme
+
+
+```
+

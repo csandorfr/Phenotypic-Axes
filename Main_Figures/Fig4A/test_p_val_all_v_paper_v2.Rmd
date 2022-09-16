@@ -1,0 +1,52 @@
+---
+title: "Test p-value association on the proportion of the variance for different traits"
+author: "Cynthia Sandor"
+date: 'Last update: `r date()`'
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 5
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+      toc_depth: 5
+  pdf_document:
+    toc: yes
+---
+
+
+
+
+```{r load data,echo=FALSE}
+rm(list = ls())
+setwd("/Users/dpag0499/Dropbox (UK Dementia Research Institute)/Sandor Lab/Backup/PROJECTS/PPMI/src/new_Figures/Fig4A")
+load("df_pval_all.Rdata")
+phen<-read.table("phenotype_table.txt",h=F,sep=",")
+colnames(phen)<-c("Disease","Trait","Category")
+df_final_m<-merge(df_final,phen,by=c("Disease"))
+
+```
+
+
+
+```{r make barplot ,echo=FALSE}
+library(ggplot2)
+df_final_m_red<-df_final_m[(df_final_m$Axis=="V1" & df_final_m$p=="0.1"),]
+df<-df_final_m_red
+df$Trait <- factor(df$Trait, levels = df$Trait[order(df$Category)])
+
+
+
+p<-ggplot(df,aes(x =Trait , y = Var,fill=Category))+geom_point(aes(colour=Category),size=15)+ theme(text = element_text(size=30),axis.text.x = element_text(angle = 90, hjust = 1))+coord_flip()
+p<-p+ geom_hline(yintercept=0.4029853, linetype="dashed", size=1,col="black")
+p<-p+ geom_hline(yintercept=0.5, linetype="dashed", size=1,col="red")
+
+
+
+p
+
+```
+
+

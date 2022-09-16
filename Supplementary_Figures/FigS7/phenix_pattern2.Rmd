@@ -1,0 +1,91 @@
+---
+title: "Phenix Run"
+author: "Cynthia Sandor"
+date: 'Last update: `r date()`'
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 5
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+      toc_depth: 5
+  pdf_document:
+    toc: yes
+---
+
+
+
+```{r setup, include=FALSE}
+setwd('/Users/dpag0499/Dropbox (UK Dementia Research Institute)/Sandor Lab/Backup/PROJECTS/PPMI/src/new_Figures/Revisions/figS6')
+library(reshape2)
+library(dplyr)
+```
+
+
+## Run Phenix on ODPC
+
+```{r get phenix data,echo=FALSE}
+load('/Users/dpag0499/Dropbox (UK Dementia Research Institute)/Sandor Lab/Backup/PROJECTS/PPMI/src/run_phenix/ODPC.Rdata')
+
+```
+
+## OPDC Phenotypic axes: correlation
+```{r correlation ODPC,echo=FALSE}
+Phen<-as.data.frame(out$imp)
+Phen$ID<-row.names(Phen)
+Phen_s<-melt(Phen,id=c("ID"))
+
+S<-as.data.frame(out$S[,c(1,2,3)])
+
+colnames(S)<-c("V1","V2","V3")
+S$ID<-as.character(row.names(out$imp))
+S_m<-melt(S,id=c("ID"))
+
+Phen_s<-merge(Phen_s,S_m,by="ID")
+
+colnames(Phen_s)<-c("ID","Name1","Value1","Axis","Value")
+
+gp = group_by(Phen_s, Name1,Axis)
+
+df<-as.data.frame(summarize(gp, cor(as.numeric(Value1), as.numeric(Value),use="complete.obs")))
+df<-df[complete.cases(df),]
+colnames(df)<-c("Name1","Axis","Cor")
+
+#write.table(unique(df$Name1),file="discovery_phen.txt",quote=FALSE,row.names=TRUE,col.names=FALSE,sep="\t")
+
+phen_cat<-read.table("discovery_phen.txt",h=T,sep="\t")
+
+
+df_info<-merge(phen_cat,df,by=c("Name1"))
+
+df_info$Name2 <- factor(df_info$Name2, levels=unique(df_info$Name2 [order(df_info$Category)]))
+axis<-df_info$Axis
+axis<-gsub("V",'Axis',axis)
+df_info$Axis<-axis
+
+df_info$Cor[df_info$Axis=="Axis1"]=abs(df_info$Cor[df_info$Axis=="Axis1"])
+df_info$Cor[df_info$Axis=="Axis2"]=-1*df_info$Cor[df_info$Axis=="Axis2"]
+df_info$Cor[df_info$Axis=="Axis3"]=-1*df_info$Cor[df_info$Axis=="Axis3"]
+
+```
+
+
+```{r fig.height=8, fig.width=10, fig.cap=paste("Phenotypic axis 1 ODPC"),echo=FALSE,warning=FALSE}
+library(ggplot2)
+
+
+p<-ggplot(df_info, aes(x = Name2, y = Cor,fill=Category)) + 
+  geom_bar(position=position_dodge(), stat = "identity",colour="black") + 
+  coord_flip()+
+  facet_grid(~Axis) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  scale_y_continuous(limits=c(-1,1))+
+  theme(axis.text=element_text(size=15))+
+  theme(strip.text.x = element_text(size = 15))+
+  theme(legend.key.size = unit(1.5, "cm"),legend.text=element_text(size=20),legend.title=element_text(size=20))
+
+
+```

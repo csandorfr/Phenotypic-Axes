@@ -1,0 +1,50 @@
+---
+title: "Comparison PPMI ODPC multiple methods add ICA "
+author: "Cynthia Sandor"
+date: 'Last update: `r date()`'
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 5
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+      toc_depth: 5
+  pdf_document:
+    toc: yes
+---
+
+
+```{r setup, include=FALSE}
+setwd('/Users/dpag0499/Documents/PROJECTS/PPMI/src/comparison_paper_Lawton/v2')
+library(phenix)
+library(ggplot2)
+library(gplots)
+library(reshape)
+load("/Users/dpag0499/Documents/PROJECTS/PPMI/src/comparison_ppmi_odpc_phenix/ODPC.Rdata")
+Phen<-read.table('/Users/dpag0499/Documents/PROJECTS/PPMI/data/phenix_input/Caseonly_gemma2_pheno.txt',header=TRUE,sep='\t',row.names = 1)
+
+```
+
+```{r get cluster Michael,echo=FALSE}
+cluster<-read.table('/Users/dpag0499/Documents/PROJECTS/PPMI/src/comparison_paper_Lawton/v2/cluster_michael_2paper.csv',header=F,sep=',')
+colnames(cluster)<-c("SubjID","kmeansclusters")
+phen_axis<-as.data.frame(out$S[,c(1:6)])
+phen_axis[,1]<--1*phen_axis[,1]
+phen_axis[,2]<--1*phen_axis[,2]
+phen_axis[,4]<--1*phen_axis[,4]
+phen_axis[,5]<--1*phen_axis[,5]
+rownames(phen_axis)<-row.names(out$imp)
+phen_axis$SubjID<-row.names(phen_axis)
+df_phen_cluster<-merge(phen_axis,cluster,by=c("SubjID"))
+df_phen_cluster_ss<-melt(df_phen_cluster,id=c("SubjID","kmeansclusters"))
+```
+
+```{r Hopkins Verbal Learning Test	 ,echo=FALSE}
+tiff(filename = "/Users/dpag0499/Documents/PROJECTS/PPMI/src/comparison_paper_Lawton/v2/legend_ibd.tiff", width = 800, height = 800)
+df_phen_cluster_ss_red<-df_phen_cluster_ss[which(df_phen_cluster_ss$variable=="V1" | df_phen_cluster_ss$variable=="V2" | df_phen_cluster_ss$variable=="V3"),]
+ggplot(df_phen_cluster_ss_red, aes(x=variable, y=value, fill=as.factor(kmeansclusters))) +  geom_boxplot()
+dev.off()
+```

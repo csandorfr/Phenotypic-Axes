@@ -1,0 +1,73 @@
+---
+title: "Development of continuous severity measures underlying multiple non-independent  Parkinson's clinical assessment"
+author: "Cynthia Sandor"
+date: 'Last update: `r date()`'
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 5
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+      toc_depth: 5
+  pdf_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(reshape)
+library(gplots)
+```
+
+
+
+## Phenotypic axes replication: OPDC vs Proband cohorts
+We observed an correlation between ODPC-Proband clinical assessments and phenotypic axes
+```{r fig.height=8, fig.width=10,echo=FALSE}
+
+phen_corr<-read.table('/Users/dpag0499/Documents/PROJECTS/Phenix_Steph/new_analyses_29_August/step1_corr_phen_axes/correlation_proband_odpc.csv',header=TRUE,sep=',')
+
+colnames(phen_corr)[4]<-"Tracking"
+colnames(phen_corr)[3]<-"OPDC"
+phen_corr[,3]<--phen_corr[,3]
+
+phen_corr_shape <- melt(phen_corr, id=c("Clinical.Assessment","Phenotypic.Axis"))
+colnames(phen_corr_shape)[3]<-"Cohort"
+colnames(phen_corr_shape)[4]<-"Correlation"
+
+id_tracking_v3<-which(phen_corr_shape$Phenotypic.Axis=='V3' & phen_corr_shape$Cohort=='Tracking')
+id_tracking_v4<-which(phen_corr_shape$Phenotypic.Axis=='V4' & phen_corr_shape$Cohort=='Tracking')
+id_tracking_v5<-which(phen_corr_shape$Phenotypic.Axis=='V5' & phen_corr_shape$Cohort=='Tracking')
+id_tracking_v6<-which(phen_corr_shape$Phenotypic.Axis=='V6' & phen_corr_shape$Cohort=='Tracking')
+
+phen_corr_shape$Phenotypic.Axis[id_tracking_v3]<-"V4"
+phen_corr_shape$Phenotypic.Axis[id_tracking_v3]<-"V6"
+phen_corr_shape$Phenotypic.Axis[id_tracking_v4]<-"V3"
+phen_corr_shape$Phenotypic.Axis[id_tracking_v6]<-"V4"
+phen_corr_shape$Correlation[id_tracking_v4]<--1*phen_corr_shape$Correlation[id_tracking_v4]
+
+
+phen_corr_shape$Correlation[phen_corr_shape$Phenotypic.Axis=="V1"]<-phen_corr_shape$Correlation[phen_corr_shape$Phenotypic.Axis=="V1"]*-1
+
+phen_corr_shape$Correlation[phen_corr_shape$Phenotypic.Axis=="V2"]<-phen_corr_shape$Correlation[phen_corr_shape$Phenotypic.Axis=="V2"]*-1
+
+phen_corr_shape$Correlation[phen_corr_shape$Phenotypic.Axis=="V3"]<-phen_corr_shape$Correlation[phen_corr_shape$Phenotypic.Axis=="V3"]*-1
+
+phen_corr_shape$Correlation[phen_corr_shape$Phenotypic.Axis=="V6"]<-phen_corr_shape$Correlation[phen_corr_shape$Phenotypic.Axis=="V6"]*-1
+
+p<-ggplot(phen_corr_shape, aes(x = Clinical.Assessment, y = Correlation,fill=Cohort)) + 
+  geom_bar(position=position_dodge(), stat = "identity") + 
+  coord_flip()+
+  facet_grid(~Phenotypic.Axis) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  scale_y_continuous(limits=c(-1,1))+
+ theme(axis.text=element_text(size=20))+
+  theme(strip.text.x = element_text(size = 20))
+p
+```
+
+
+

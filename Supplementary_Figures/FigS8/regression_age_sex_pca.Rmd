@@ -1,0 +1,144 @@
+---
+title: "Regression sex PC"
+author: "Cynthia Sandor"
+date: 'Last update: `r date()`'
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 5
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+      toc_depth: 5
+  pdf_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(reshape2)
+library(gplots)
+library(dplyr)
+```
+## Phenotypic axes: correlation
+```{r get data,echo=FALSE}
+setwd("/Users/dpag0499/Dropbox (UK Dementia Research Institute)/Sandor Lab/Backup/PROJECTS/PPMI/src/new_Figures/Revisions/FigS7")
+info_ind<-read.table('/Users/dpag0499/Dropbox (UK Dementia Research Institute)/Sandor Lab/Backup/PROJECTS/PPMI/src/new_Figures/Revisions/FigS7/covariates.txt',h=F,sep="\t")
+colnames(info_ind)<-c("FAM","ID","GENDER","AGE","PC1","PC2")
+load("/Users/dpag0499/Dropbox (UK Dementia Research Institute)/Sandor Lab/Backup/PROJECTS/PPMI/src/new_Figures/Revisions/figS4/ODPC.Rdata")
+
+```
+
+## Calculate a correlation
+```{r get data,echo=FALSE}
+df_S<-as.data.frame(out$S[,c(1,2,3)])
+df_S$ID<-row.names(out$imp)
+df_S_m<-melt(df_S,id=c("ID"))
+info_ind_m<-melt(info_ind[,-c(1)],by=c(ID))
+info_var2<-merge(df_S,info_ind,by=c("ID"))
+
+gp1 = group_by(info_var,variable)
+gp2= group_by(info_var,variable)
+df<-as.data.frame(summarize(gp, cor(as.numeric(Value1), as.numeric(Value),use="complete.obs")))
+By <- by(info_var2[2:5], info_var2[(7:8)], cor)
+
+list1<-c("V1","V2","V3","PC1","PC2")
+df_comb<-expand.grid(list1,list1)
+
+calculate_cor<-function(index,df_comb,info_var){
+  var1<-as.character(df_comb[index,1])
+  var2<-as.character(df_comb[index,2])
+  df1<-info_var[info_var$variable==var1,]
+  df2<-info_var[info_var$variable==var2,]
+  df_f<-merge(df1,df2,by=c("ID"))
+  head(df_f)
+  test<-cor.test(df_f[,3],df_f[,5])
+  return(list(test$estimate,test$p.value))
+}
+
+list_val=sapply(c(1:dim(df_comb)[1]),calculate_cor,df_comb=df_comb,info_var=info_var)
+calculateor(index,df_comb,info_var)
+
+
+calculate_cor<-function(index,df_comb,info_var){
+  var1<-as.character(df_comb[index,1])
+  var2<-as.character(df_comb[index,2])
+  df1<-info_var[info_var$variable==var1,]
+  df2<-info_var[info_var$variable==var2,]
+  df_f<-merge(df1,df2,by=c("ID"))
+  head(df_f)
+  test<-cor.test(df_f[,3],df_f[,5])
+  return(list(test$estimate,test$p.value))
+}
+
+calculate_cor_gender<-function(index,df_comb,info_var){
+  var1<-as.character(df_comb[index,1])
+  var2<-as.character(df_comb[index,2])
+  var3<-"GENDER"
+  df1<-info_var[info_var$variable==var1,]
+  df2<-info_var[info_var$variable==var2,]
+  df3<-info_var[info_var$variable==var3,]
+  df_f<-merge(merge(df1,df2,by=c("ID")),df3,by=c("ID"))
+  residuals <- residuals(lm(df_f[, 3] ~ df_f[, 7]))
+  test<-cor.test(residuals,df_f[,5])
+  return(list(test$estimate,test$p.value))
+}
+
+
+list_val=t(sapply(c(1:dim(df_comb)[1]),calculate_cor,df_comb=df_comb,info_var=info_var))
+df_cor1<-df_comb
+df_cor1$cor<-list_val[,1]
+df_cor1$p<-list_val[,2]
+
+list_val2=t(sapply(c(1:dim(df_comb)[1]),calculate_cor_gender,df_comb=df_comb,info_var=info_var))
+df_cor2<-df_comb
+df_cor2$cor<-list_val2[,1]
+df_cor2$p<-list_val2[,2]
+
+df_cor2$cor<-as.numeric(df_cor2$cor)
+df_cor2$p<-as.numeric(df_cor2$p)
+
+index=c()
+for (i in c(1:(length(list1)-1))){
+  for (j in c(i+1:(length(list1)-1))){
+    a1=list1[i]
+    a2=list1[j]
+    index<-c(index,which(df_cor$Var1==a1 & df_cor$Var2==a2))
+  } 
+}
+
+df_cor2$cor[-index]<-NA
+
+df_cor2$val2[-index]<-""
+df_cor2$sgn<-""
+df_cor2$sgn[df_cor$p<0.01]<-"*"
+df_cor2$sgn[df_cor$p<0.005]<-"**"
+
+
+df_cor2$val2<-paste0(as.character(round(df_cor2$cor,2)),as.character(df_cor2$sgn))
+
+df_cor2$val2[-index]<-""
+
+My_Theme = theme(
+axis.title.x=element_blank(),
+axis.text.x = element_text(size = 16,angle = 90, vjust = 0.5, hjust=1),
+axis.text.y = element_text(size = 16),
+axis.title.y = element_text(size = 16))
+
+
+ggheatmap <- ggplot(df_cor2, aes(Var1, Var2, fill = cor))+
+  geom_tile(colour = "black")+
+  scale_fill_gradient2(na.value='white',low = "yellow", high = "red", mid = "orange",
+                       midpoint = 0, limit = c(-0.5,0.5), space = "Lab",
+                       name="Pearson\nCorrelation") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1,
+                                   size = 12, hjust = 1))+
+  theme_minimal()+ # minimal theme
+  coord_fixed()
+
+ggheatmap+geom_text(aes(Var1, Var2, label = val2), color = "black", size = 10)+My_Theme
+```
+
+

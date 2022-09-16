@@ -1,0 +1,159 @@
+---
+title: "Comparison phenotypic axes with PPMI"
+author: "Cynthia Sandor"
+date: 'Last update: `r date()`'
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 5
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+      toc_depth: 5
+  pdf_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(reshape)
+library(gplots)
+setwd('/Users/dpag0499/Documents/PROJECTS/PPMI/src/comparison_ppmi_odpc_phenix')
+load('ODPC.Rdata')
+load('PPMI.Rdata')
+load('cat_odpc.Rdata')
+load('cat_ppmi2.Rdata')
+source("/Users/dpag0499/Documents/PROJECTS/PPMI/src/comparison_ppmi_odpc_multiple_approaches/mutiple_plot_R.R")
+
+```
+
+
+## OPDC Phenotypic axes: correlation
+```{r correlation ODPC,echo=FALSE}
+
+n_clinical<-length(colnames(Y_temp))
+n_axes<-6
+list_axes<-c(1,2,3,4,5,6)
+mm <- matrix(NA,n_clinical,n_axes)
+
+for (i in 1:n_axes) {
+  for (j in 1:n_clinical) {
+    t<-cor.test(Y_temp[,j],out[["S"]][,i])
+    mm[j,i]<-as.numeric(t$estimate)
+  }
+}
+df_mm<-as.data.frame(mm)
+colnames(df_mm)<-c("V1","V2","V3","V4","V5","V6")
+row.names(df_mm)<-colnames(Y_temp)
+df_mm$Clinical<-row.names(df_mm)
+df_mm$Cat<-cat_opdc$Cat
+df_mm_s<-melt(df_mm,id=c("Clinical","Cat"))
+colnames(df_mm_s)[4]<-"Value"
+colnames(df_mm_s)[3]<-"Axis"
+df_mm_s$Value[df_mm_s$Axis=='V1']<--1*df_mm_s$Value[df_mm_s$Axis=='V1']
+df_mm_s$Value[df_mm_s$Axis=='V2']<--1*df_mm_s$Value[df_mm_s$Axis=='V2']
+df_mm_s$Clinical <- factor(df_mm_s$Clinical, levels = unique(df_mm_s$Clinical[order(df_mm_s$Cat)]))
+
+
+
+```
+## PPMI Phenotypic axes: correlation
+```{r correlation PPMI,echo=FALSE}
+
+n_clinical<-length(colnames(Y_temp2))
+n_axes<-6
+list_axes<-c(1,2,3,4,5,6)
+mm2 <- matrix(NA,n_clinical,n_axes)
+
+for (i in 1:n_axes) {
+  for (j in 1:n_clinical) {
+    t<-cor.test(Y_temp2[,j],out2[["S"]][,i])
+    mm2[j,i]<-as.numeric(t$estimate)
+  }
+}
+df_mm2<-as.data.frame(mm2)
+colnames(df_mm2)<-c("V1","V2","V3","V4","V5","V6")
+row.names(df_mm2)<-colnames(Y_temp2)
+df_mm2$Clinical<-row.names(df_mm2)
+cat_ppmi_red<-cat_ppmi[which(cat_ppmi$Clinical %in% df_mm2$Clinical),]
+df_mm2$Cat<-cat_ppmi_red$Cat
+df_mm2_s<-melt(df_mm2,id=c("Clinical","Cat"))
+colnames(df_mm2_s)[4]<-"Value"
+colnames(df_mm2_s)[3]<-"Axis"
+df_mm2_s$Value[df_mm2_s$Axis=='V1']<--1*df_mm2_s$Value[df_mm2_s$Axis=='V1']
+
+
+```
+
+## Plot Phenotypic axes: correlation
+
+### Phenotypic axis 1
+```{r fig.height=8, fig.width=10, fig.cap=paste("Phenotypic axis 1 ODPC"),echo=FALSE,warning=FALSE}
+i<-1
+
+
+
+id<-which(df_mm_s$Axis=="V1" | df_mm_s$Axis=="V2" | df_mm_s$Axis=="V3")
+p<-ggplot(df_mm_s[id,], aes(x = Clinical, y = Value,fill=Cat)) + 
+  geom_bar(position=position_dodge(), stat = "identity") + 
+  coord_flip()+
+  facet_grid(~Axis) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  scale_y_continuous(limits=c(-1,1))+
+ theme(axis.text=element_text(size=20))+
+  theme(strip.text.x = element_text(size = 20))+
+   theme(legend.position="none")+
+ theme(axis.title.y=element_blank())+
+  theme(axis.title.x=element_blank())
+
+```
+
+```{r fig.height=8, fig.width=10, fig.cap=paste("Phenotypic axis 1"),echo=FALSE,warning=FALSE}
+
+
+id<-which(df_mm2_s$Axis=="V1" | df_mm2_s$Axis=="V2" | df_mm2_s$Axis=="V3")
+list_hop<-c("HOPKINKS_DVT_TOTAL_RECALL","HOPKINKS_DVT_DELAYED_RECALL","HOPKINKS_DVT_RETENTION","HOPKINKS_DVT_RECOG_DISC_INDEX")
+
+ 
+
+df_mm2_s$Clinical[df_mm2_s$Clinical==list_hop[1]]<-"Hopkinks1"
+df_mm2_s$Clinical[df_mm2_s$Clinical==list_hop[2]]<-"Hopkinks2"
+df_mm2_s$Clinical[df_mm2_s$Clinical==list_hop[3]]<-"Hopkinks3"
+df_mm2_s$Clinical[df_mm2_s$Clinical==list_hop[4]]<-"Hopkinks4"
+
+df_mm2_s$Clinical <- factor(df_mm2_s$Clinical, levels=unique(df_mm2_s$Clinical[order(df_mm2_s$Cat)]))
+
+p2<-ggplot(df_mm2_s[id,], aes(x = Clinical, y = Value,fill=Cat)) + 
+  geom_bar(position=position_dodge(), stat = "identity") + 
+  coord_flip()+
+  facet_grid(~Axis) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  scale_y_continuous(limits=c(-1,1))+
+ theme(axis.text=element_text(size=20))+
+  theme(strip.text.x = element_text(size = 20))+
+   theme(legend.position="none")+
+ theme(axis.title.y=element_blank())+
+  theme(axis.title.x=element_blank())
+
+tiff(filename = "plot_opdc_ppmi.tiff", width = 2000, height = 2000)
+multiplot(p,p2,cols=2)
+ dev.off()
+ 
+ p<-ggplot(df_mm2_s[id,], aes(x = Clinical, y = Value,fill=Cat)) + 
+  geom_bar(position=position_dodge(), stat = "identity") + 
+  coord_flip()+
+  facet_grid(~Axis) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  scale_y_continuous(limits=c(-1,1))+
+ theme(axis.text=element_text(size=20))+
+  theme(strip.text.x = element_text(size = 20))+
+ theme(axis.title.y=element_blank())+
+  theme(axis.title.x=element_blank())+
+ theme(legend.text=element_text(size=20))
+ tiff(filename = "legend.tiff", width = 2000, height = 2000)
+p
+ dev.off()
+```
+

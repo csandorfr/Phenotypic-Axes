@@ -1,0 +1,61 @@
+---
+title: "Test Parameters SN PD t-test true"
+author: "Cynthia Sandor"
+date: 'Last update: `r date()`'
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 5
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+      toc_depth: 5
+  pdf_document:
+    toc: yes
+  word_document:
+    toc: yes
+---
+
+
+
+```{r setup, include=FALSE}
+rm(list = ls())
+setwd("/Users/dpag0499/Dropbox (UK Dementia Research Institute)/Sandor Lab/Backup/PROJECTS/PPMI/src/new_Figures/Fig4C")
+library(ggplot2)
+library(reshape)
+load("data_analysis.Rdata")
+```
+
+
+```{r make plot,echo=FALSE}
+list_name_pheno<-c("Axis 1","Alzheimer's disease","Parkinson's diease","Inflammatory Bowel Disease","Rheumatoid Arthritis","Ulcerative Colitis")
+df_results$Trait <- factor(df_results$Trait, levels=list_name_pheno)
+
+My_Theme = theme(
+axis.title.x = element_blank(),
+axis.text.x = element_text(size = 30,angle = 90, vjust = 1.1, hjust=1),
+
+axis.text.y = element_text(size = 30),
+axis.title.y = element_blank(),
+legend.text = element_text(size=20))
+               
+ggheatmap1 <- ggplot(df_results[df_results$Atlas=="sn",], aes(factor(Trait) , Cell, fill = -log(P,10)))+
+geom_tile(color = "black")+
+scale_fill_gradient(low = "white", high = "red", limit = c(0,4), space = "Lab",
+name="Pearson\nCorrelation") +
+theme_minimal()+ # minimal theme
+theme(axis.text.x = element_text(angle = 45, vjust = 1,
+size = 15, hjust = 1))+
+theme(axis.text.y = element_text(size = 17))+
+  geom_text(aes(label=df_results$Sgn[df_results$Atlas=="sn"]),size=10)+
+  theme(strip.text.x = element_blank())+
+  coord_equal()
+
+p<-ggheatmap1+My_Theme
+
+
+
+
+```
