@@ -1,0 +1,66 @@
+---
+title: "Phenix Run"
+author: "Cynthia Sandor"
+date: 'Last update: `r date()`'
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 5
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+      toc_depth: 5
+  pdf_document:
+    toc: yes
+---
+
+
+
+```{r setup, include=FALSE}
+setwd('/Users/dpag0499/Documents/PROJECTS/PPMI/src/caleb_distribution_pheno_axis')
+library(phenix)
+library(ggplot2)
+library(reshape)
+```
+
+
+## Get phenotypic axis data for PPMI & Discovery cohort
+
+```{r get phenotypic axis from ppmi and discovery ,echo=FALSE}
+load("/Users/dpag0499/Documents/PROJECTS/PPMI/src/comparison_ppmi_odpc_phenix/PPMI2.Rdata")
+load("/Users/dpag0499/Documents/PROJECTS/PPMI/src/comparison_ppmi_odpc_phenix/ODPC.Rdata")
+pheno_ppmi<-out3$S[,c(1:3)]
+pheno_discovery<-out$S[,c(1:3)]
+```
+
+```{r reshape the data discovery,echo=FALSE}
+pheno_discovery_reshape<-melt(pheno_discovery)
+colnames(pheno_discovery_reshape)<-c("ID","Axis","Score")
+pheno_discovery_reshape$ID2<-paste0(pheno_discovery_reshape$ID,"_1",sep="")
+pheno_discovery_reshape$COHORT<-"DISCOVERY"
+```
+
+```{r reshape the data ,echo=FALSE}
+pheno_ppmi_reshape<-melt(pheno_ppmi)
+colnames(pheno_discovery_ppmi)<-c("ID","Axis","Score")
+pheno_ppmi_reshape$ID2<-paste0(pheno_ppmi_reshape$ID,"_2",sep="")
+pheno_ppmi_reshape$COHORT<-"PPMI"
+```
+
+```{r merge the two dataframe,echo=FALSE}
+pheno_reshape<-rbind(pheno_discovery_reshape,pheno_ppmi_reshape)
+```
+
+```{r make plot,echo=FALSE}
+p<-ggplot(pheno_reshape, aes(x=Score,colour=as.factor(Axis))) + 
+  facet_grid(COHORT ~ Axis)+
+  geom_histogram(aes(y=..density..),fill="white")+
+ geom_density(alpha=.2,colour="black") 
+
+tiff(filename = "/Users/dpag0499/Documents/PROJECTS/PPMI/src/caleb_distribution_pheno_axis/distribution_score.tiff", width = 2000, height = 2000,res = 300)
+p
+dev.off()
+```
+

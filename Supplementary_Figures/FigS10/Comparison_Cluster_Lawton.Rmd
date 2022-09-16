@@ -1,0 +1,81 @@
+---
+title: "Comparison PPMI ODPC multiple methods add ICA "
+author: "Cynthia Sandor"
+date: 'Last update: `r date()`'
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 5
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+      toc_depth: 5
+  pdf_document:
+    toc: yes
+---
+
+
+```{r setup, include=FALSE}
+rm(list = ls())
+
+setwd('/Users/dpag0499/Dropbox (UK Dementia Research Institute)/Sandor Lab/Backup/PROJECTS/PPMI/src/new_Figures/Fig_Cluster_Distribution_Michael')
+library(ggplot2)
+library(gplots)
+library(reshape)
+library(ggpubr)
+
+
+```
+
+```{r load tracking and reformat,echo=FALSE}
+load("cluster_discovery.Rdata")
+tracking<-info_cluster_map_pheno[,c(1,7,8,9)]
+tracking$variable<-gsub("S","V",tracking$variable)
+colnames(tracking)<-c("ID","Cluster","Axis","Value")
+tracking$Cohort<-"Tracking"
+```
+
+```{r load discovery and reformat,echo=FALSE}
+load("cluster_discovery2.Rdata")
+discovery<-df_phen_cluster_ss_red
+colnames(discovery)<-c("ID","Cluster","Axis","Value")
+discovery$Cohort<-"Discovery"
+
+```
+
+```{r boxplot	 ,echo=FALSE}
+tracking$Value[tracking$Axis=="V1"]<-tracking$Value[tracking$Axis=="V1"]*-1
+tracking$Value[tracking$Axis=="V2"]<-tracking$Value[tracking$Axis=="V2"]*-1
+
+
+
+df_cluster<-rbind(tracking,discovery)
+df_cluster$cluster<-as.character(df_cluster$Cluster)
+
+
+my_comparisons <- list( c("1","2","3","4"))
+my_comparisons<-list(c("1","2"),c("1","3"),c("1","4"),c("2","3"),c("2","4"),c("3","4"))
+my_comparisons<-list(c("1","4"))
+p<- ggboxplot( df_cluster, x = "Axis", y ="Value",col="cluster", palette = "jco",size=3) + 
+  facet_grid(~Cohort)+
+  ylab("Score")
+
+p<- ggboxplot( df_cluster, x = "Axis", y ="Value",col="cluster", palette = "jco",size=3) + 
+  facet_grid(~Cohort)+
+  ylab("Score")
+compare_means(Value ~ cluster, df_cluster, group.by = c("Cohort","Axis"))
+anno_df <- compare_means(Value ~ cluster, df_cluster, group.by = c("Cohort","Axis")) %>%
+ mutate(y_pos = 2, p.adj = format.pval(p.adj, digits = 2))
+
+
+
+q<-p+stat_compare_means(ref.group = "1")
+q
+
+ggplot(df_cluster, aes(x=Axis, y=Value, fill=as.factor(Cluster))) +facet_grid(~Cohort)+  geom_boxplot()
+compare_means(Value ~ cluster, df_cluster, group.by = c("Cohort","Axis"))
+
+
+```

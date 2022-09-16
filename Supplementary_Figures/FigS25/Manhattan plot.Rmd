@@ -1,0 +1,104 @@
+---
+title: "Association Proband OPDC with different combination of phenotypic axes February 2018 3 cohortes"
+author: "Cynthia Sandor"
+date: 'Last update: `r date()`'
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 5
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+      toc_depth: 5
+  pdf_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+library('qqman')
+setwd('/Users/dpag0499/Documents/PROJECTS/PPMI/src/association_3_cohorts_2_first_pheno_axis/V_February_Proband_OPDC_PPMI')
+
+chr_pb<-function(pheno) {
+	list_chr<-sapply(as.character(pheno$MarkerName), function(x) strsplit(x, ":")[[1]][1])
+	list_bp<-sapply(as.character(pheno$MarkerName), function(x) strsplit(x, ":")[[1]][2])
+	pheno$BP<-as.numeric(list_bp)
+	pheno$CHR<-as.numeric(list_chr)
+	pheno
+}
+
+
+```
+
+## Get the results of metal association for two first pheno axis
+
+```{r get results, include=FALSE}
+list_assoc<-list()
+list_pheno1<-c(1,2,3)
+list_pheno2<-c(1,2,4)
+list_pheno3<-c(1,2,4)
+list_comb<-c()
+for (i in (1:3)) {
+  pheno1<-list_pheno1[i]
+  pheno2<-list_pheno2[i]
+  pheno3<-list_pheno3[i]
+  comb<-paste("v",pheno1,"_v",pheno2,"_v",pheno3,sep="")
+  list_comb<-c(list_comb,comb)
+  file<-paste("METAANALYSIS_",comb,".TBL",sep='')
+  list_assoc[[comb]]<-read.table(file,header=TRUE)
+}
+```
+
+
+## Add chromosome and position
+
+```{r add chromosome and position, include=FALSE}
+for (i in 1:3) {
+ comb=list_comb[i]
+ list_assoc[[comb]]<-chr_pb(list_assoc[[comb]])
+}
+```
+
+## Compute Q value
+
+```{r compute q value, include=FALSE}
+for (i in 1:3) {
+  comb=list_comb[i]
+ list_assoc[[comb]]$Q<-p.adjust(list_assoc[[comb]]$P.value, method = "fdr")
+}
+```
+
+## Display top hit
+
+```{r display best value, echo=FALSE}
+df<-data.frame()
+for (i in 1:3) {
+  comb=list_comb[i]
+  best_value<-list_assoc[[comb]][order(list_assoc[[comb]]$P.value),]
+  best_value<-best_value[c(1:5),]
+  best_value$V<-rep(comb,5)
+  df<-rbind(df,best_value)
+}
+DT::datatable(df, rownames = TRUE, caption = "Best association", escape = FALSE, extensions = 'Buttons', options = list(dom = 'ftipr'))
+```
+
+
+
+
+
+## Manhattan plot
+
+```{r fig.height=8, fig.width=10, fig.cap=paste("Manhattan plot"),echo=FALSE,warning=FALSE}
+for (i in 1:3) { 
+  comb=list_comb[i]
+  manhattan(list_assoc[[comb]],p="P.value",suggestiveline=F, genomewideline = F,ylim=c(0,10),main=comb)
+}
+```
+
+
+
+
+
+
+

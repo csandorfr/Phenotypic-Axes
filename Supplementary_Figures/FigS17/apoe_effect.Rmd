@@ -1,0 +1,68 @@
+---
+title: "APOE relation with phenotypic axis "
+author: "Cynthia Sandor"
+date: 'Last update: `r date()`'
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 5
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+      toc_depth: 5
+  pdf_document:
+    toc: yes
+---
+
+```{r formating,echo=FALSE}
+
+S<-as.data.frame(out$S[,c(1,2,3)])
+S$ID<-row.names(Y_temp_red)
+df_apoe<-info_ped_red
+colnames(df_apoe)[2]<-"ID"
+df_all<-merge(df_apoe,S,by=c("ID"))
+df_all<-df_all[,-c(2:10)]
+colnames(df_all)[c(5,6,7)]<-c("V1","V2","V3")
+library(reshape2)
+df_all_s<-melt(df_all,id.vars=c("ID","APOE","A1","A2"))
+
+library(ggpubr)
+p<-ggboxplot(df_all_s, x="APOE", y="value",fill="APOE") +facet_grid(~variable)
+p<-p+ stat_compare_means(method = "anova")
+
+df_all_s$APOE_RISK<-"No_ε4"
+df_all_s$APOE_RISK[df_all_s$APOE=="ε3/ε4"]<-"ε3/ε4"
+df_all_s$APOE_RISK[df_all_s$APOE=="ε4/ε4"]<-"ε4/ε4"
+table(df_all_s$APOE_RISK)
+
+library(ggpubr)
+p<-ggboxplot(df_all_s, x="APOE_RISK", y="value",fill="APOE_RISK") +facet_grid(~variable)
+p<-p+ stat_compare_means(method = "anova")
+
+df_all_s$APOE_RISK2<-"No_ε4"
+df_all_s$APOE_RISK2[df_all_s$APOE=="ε4/ε4"]<-"ε4/ε4"
+table(df_all_s$APOE_RISK2)
+
+library(ggpubr)
+p<-ggboxplot(df_all_s, x="APOE_RISK2", y="value",fill="APOE_RISK2") +facet_grid(~variable)
+p<-p+ stat_compare_means(method = "anova")
+
+
+
+```
+
+
+```{r get data,echo=FALSE}
+
+rm(list = ls())
+
+setwd('/Users/dpag0499/OneDriveCardiffUniversity/Documents/PROJECTS/gemma_R/src/apoe/tracking')
+
+load("info_apoe_tracking.Rdata")
+load("all_genotype.Rdata")
+
+
+```
+

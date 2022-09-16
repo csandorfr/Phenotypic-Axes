@@ -1,0 +1,104 @@
+---
+title: "Phenix Run"
+author: "Cynthia Sandor"
+date: 'Last update: `r date()`'
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 5
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+      toc_depth: 5
+  pdf_document:
+    toc: yes
+---
+
+
+
+```{r setup, include=FALSE}
+rm(list = ls())
+setwd('/Users/dpag0499/Dropbox (UK Dementia Research Institute)/Sandor Lab/Backup/PROJECTS/Longitudinal_Data/src/phenix_beta_value/OPDC_PPMI/V4')
+```
+
+
+## Load data OPDC
+```{r get phenix data,echo=FALSE}
+load("/Users/dpag0499/Dropbox (UK Dementia Research Institute)/Sandor Lab/Backup/PROJECTS/Longitudinal_Data/src/phenix_beta_value/OPDC/data_OPDC_AK.Rdata")
+
+```
+
+## OPDC Phenotypic axes: correlation
+```{r correlation ODPC,echo=FALSE}
+
+n_clinical<-length(colnames(out_long$imp))
+n_axes<-2
+list_axes<-c(1,2)
+mm <- matrix(NA,n_clinical,n_axes)
+
+for (i in 1:n_axes) {
+  for (j in 1:n_clinical) {
+    t<-cor.test(out_long$imp[,j],out_long[["S"]][,i])
+    mm[j,i]<-as.numeric(t$estimate)
+  }
+}
+
+df_mm<-as.data.frame(mm)
+
+colnames(df_mm)<-c("V1","V2")
+row.names(df_mm)<-colnames(out_long$imp)
+df_mm$Clinical<-row.names(df_mm)
+library(reshape2)
+
+df_mm_s<-melt(df_mm,id=c("Clinical"))
+colnames(df_mm_s)[3]<-"r2"
+colnames(df_mm_s)[2]<-"Axis"
+df_mm_s$r2[df_mm_s$Axis=="V1"]<-df_mm_s$r2[df_mm_s$Axis=="V1"]*-1
+#df_mm_s$r2[df_mm_s$Axis=="V2"]<-df_mm_s$r2[df_mm_s$Axis=="V2"]*-1
+df_mm_cor_long_opdc<-df_mm_s
+```
+
+```{r formatting data,echo=FALSE}
+info_phen_tracking<-read.table("/Users/dpag0499/Dropbox (UK Dementia Research Institute)/Sandor Lab/Backup/PROJECTS/Longitudinal_Data/src/phenix_beta_value/OPDC_PPMI/V4/Tracking_phen.csv",h=T,sep=",",quote = "")
+
+colnames(info_phen_tracking)<-c("Clinical","Phenotype")
+
+
+df_mm_cor_long_tracking2<-merge(df_mm_cor_long_tracking,info_phen_tracking,by=c("Clinical"))
+
+```
+
+
+```{r fig.height=8, fig.width=10, fig.cap=paste("Phenotypic axis 1 ODPC"),echo=FALSE,warning=FALSE}
+library(ggplot2)
+
+
+p<-ggplot( df_mm_cor_long_tracking2[df_mm_cor_long_tracking2$Axis=="V1",], aes(x = Phenotype, y = r2,fill=r2)) + 
+  geom_bar(position=position_dodge(), stat = "identity") + 
+  coord_flip()+
+  facet_grid(~Axis) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  scale_y_continuous(limits=c(-1,1))+
+ theme(axis.text=element_text(size=20))+
+  theme(strip.text.x = element_text(size = 20))
+p
+```
+
+
+
+```{r fig.height=8, fig.width=10, fig.cap=paste("Phenotypic axis 1 ODPC"),echo=FALSE,warning=FALSE}
+library(ggplot2)
+
+
+p<-ggplot( df_mm_cor_long_opdc2[df_mm_cor_long_opdc2$Axis=="V1",], aes(x = Phenotype, y = r2,fill=r2)) + 
+  geom_bar(position=position_dodge(), stat = "identity") + 
+  coord_flip()+
+  facet_grid(~Axis) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  scale_y_continuous(limits=c(-1,1))+
+ theme(axis.text=element_text(size=20))+
+  theme(strip.text.x = element_text(size = 20))
+p
+```

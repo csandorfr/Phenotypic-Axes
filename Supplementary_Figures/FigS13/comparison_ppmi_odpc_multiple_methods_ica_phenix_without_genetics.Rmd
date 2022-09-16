@@ -1,0 +1,261 @@
+---
+title: "Comparison PPMI ODPC multiple methods add ICA "
+author: "Cynthia Sandor"
+date: 'Last update: `r date()`'
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 5
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+      toc_depth: 5
+  pdf_document:
+    toc: yes
+---
+
+
+```{r setup, include=FALSE}
+setwd('/Users/dpag0499/Documents/PROJECTS/PPMI/src/comparison_ppmi_odpc_multiple_approaches')
+library(phenix)
+library(ggplot2)
+library(gplots)
+library(reshape)
+
+
+load("/Users/dpag0499/Documents/PROJECTS/PPMI/src/comparison_ppmi_odpc_phenix/PPMI.Rdata")
+load("/Users/dpag0499/Documents/PROJECTS/PPMI/src/comparison_ppmi_odpc_phenix/ODPC.Rdata")
+load('/Users/dpag0499/Documents/PROJECTS/PPMI/src/comparison_ppmi_odpc_phenix/cat_odpc.Rdata')
+load('/Users/dpag0499/Documents/PROJECTS/PPMI/src/comparison_ppmi_odpc_phenix/cat_ppmi2.Rdata')
+load('/Users/dpag0499/Documents/PROJECTS/PPMI/src/comparison_ppmi_odpc_phenix/PPMI_Without_Genetics.Rdata')
+load('/Users/dpag0499/Documents/PROJECTS/PPMI/src/comparison_ppmi_odpc_phenix/OPDC_Without_Genetics.Rdata')
+Phen<-read.table('/Users/dpag0499/Documents/PROJECTS/PPMI/data/phenix_input/Caseonly_gemma2_pheno.txt',header=TRUE,sep='\t',row.names = 1)
+cat_ppmi_red<-cat_ppmi[which(cat_ppmi$Clinical %in% colnames(Y_temp2)),]
+```
+
+```{r functions, include=FALSE}
+
+make_plot_bar<-function(id,df_mm_s) {
+  id<-which(df_mm_s$Underly_Variable==paste("V",i,sep=''))
+  p<-ggplot(df_mm_s[id,], aes(x=Clinical, y=Value,fill=Cat)) + 
+  geom_bar(stat='identity',position=position_dodge()) + 
+    geom_bar(stat='identity',position=position_dodge()) +  
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
+p
+}
+
+correlation_lat_var<-function(Y,S,n_axes,cat) {
+  n_clinical<-length(colnames(Y))
+  list_axes<-c(1:n_axes)
+  mm <- matrix(NA,n_clinical,n_axes)
+
+  for (i in 1:n_axes) {
+    for (j in 1:n_clinical) {
+      t<-cor.test(Y[,j],S[,i])
+      mm[j,i]<-as.numeric(t$estimate)
+    }
+  }
+
+    df_mm<-as.data.frame(mm)
+    colnames(df_mm)<-paste0("V",c(1:n_axes))
+    row.names(df_mm)<-colnames(Y)
+    df_mm$Clinical<-row.names(df_mm)
+    df_mm$Cat<-cat$Cat
+    df_mm_s<-melt(df_mm,id=c("Clinical","Cat"))
+    colnames(df_mm_s)[4]<-"Value"
+    colnames(df_mm_s)[3]<-"Underly_Variable"
+    df_mm_s$Clinical <- factor(df_mm_s$Clinical, levels = unique(df_mm_s$Clinical[order(df_mm_s$Cat)]))
+    df_mm_s
+    
+}
+
+
+
+correlation_table<-function(df_phenix,cat_ppmi) {
+
+col_cat=c()
+col_S=c()
+col_x=c()
+col_y=c()
+n_cat<-length(unique(cat_ppmi$Cat))
+list_cat<-unique(cat_ppmi$Cat)
+  for (i in 1:3) {
+    for (j in 1:n_cat) {
+     S<-paste("V",i,sep="")
+      index<-which(df_phenix$Underly_Variable==S & df_phenix$Cat==list_cat[j] & df_phenix$cohort=="ODPC")
+      a<-mean(df_phenix$Value[index])
+      index<-which(df_phenix$Underly_Variable==S & df_phenix$Cat==list_cat[j]  & df_phenix$cohort=="PPMI")
+      b<-mean(df_phenix$Value[index])
+      col_S<-c(S,col_S)
+      col_cat<-c(col_cat,list_cat[j])
+      col_x<-c(col_x,a)
+      col_y<-c(col_y,b)
+    }
+  }
+  df_phenix_comp<-data.frame(S=col_S,Cat=col_cat,ODPC=col_x,PPMI=col_y)
+ }
+```
+
+
+## Compute MDS/PCA/ICA/phenix
+
+I performed MDS/PCA/ICA analyses on imputed phenotype (I can replicate the result below by replacing missing phenotype by mean but only the phenotype with < 5% have been considered)
+For I performed MDS with two dimensions and I considered in further analyses two first PCA and 2 first latent variable of phenix.
+
+### ICA
+```{r ICA ,echo=FALSE}
+library(fastICA)
+ica<-fastICA(out$imp, n.comp=3)
+ica_opdc<-ica$S
+
+ica<-fastICA(out2$imp, n.comp=3)
+ica_ppmi<-ica$S
+```
+
+### MDS
+```{r MDS ,echo=FALSE}
+d <- dist(out$imp) # euclidean distances between the rows
+test<- cmdscale(d,eig=TRUE,k=3)
+mds_odpc <-test$points
+
+d <- dist(out2$imp) # euclidean distances between the rows
+test<-cmdscale(d,eig=TRUE,k=3)
+mds_ppmi <-test$points
+mds_ppmi[,1]<--mds_ppmi[,1]
+```
+
+### PCA
+```{r PCA ,echo=FALSE}
+test<-prcomp(out$imp,scale=T)
+pca_odpc<-test$x
+test<-prcomp(out2$imp,scale=T)
+pca_ppmi<-test$x
+pca_ppmi[,1]<-pca_ppmi[,1]
+
+```
+
+### Phenix
+```{r phenix 0 ,echo=FALSE}
+phenix0_odpc<-out_without_genetics$S
+phenix0_ppmi<-out_without_genetics_ppmi$S
+phenix0_ppmi[,2]<--phenix0_ppmi[,2]
+phenix0_ppmi[,3]<-phenix0_ppmi[,4]
+```
+
+### Phenix 
+```{r phenix ,echo=FALSE}
+phenix_odpc<-out$S
+phenix_ppmi<-out2$S
+phenix_ppmi[,2]<--phenix_ppmi[,2]
+phenix_ppmi[,3]<-phenix_ppmi[,4]
+```
+
+
+## Compute correlation underlying variable & phenotypic axes
+
+As PPMI and ODPC do not use the same clinical assessments, I classified into different categories:
+(1) Motors
+(2) Cognitive
+(3) Anxiety
+(4) Autonomic
+(5) Sleep
+(6) Others
+
+These categories have been defined by PPMI cnsortium.
+
+(1) I computed the correlation (pearson) between clinical assements with principal variable for different categories of phenotype in both cohort. 
+(2) I computed the mean of correlation by category of phenotype
+(3) I compared these correlation by category p
+
+
+
+
+###  Phenix
+```{r Phenix correlation ,echo=FALSE}
+df_phenix_odpc<-correlation_lat_var(out$imp,phenix_odpc,3,cat_opdc)
+df_phenix_ppmi<-correlation_lat_var(out2$imp,phenix_ppmi,3,cat_ppmi_red)
+
+df_phenix<-rbind(df_phenix_odpc,df_phenix_ppmi)
+df_phenix$cohort<-c(rep("ODPC",length(row.names(df_phenix_odpc))),rep("PPMI",length(row.names(df_phenix_ppmi))))
+df_phenix$S<-paste0(df_phenix$Underly_Variable,sep="_",df_phenix$Cat)
+df_phenix_mean<-correlation_table(df_phenix,cat_ppmi_red)
+colnames(df_phenix_mean)[3]<-"OPDC"
+p <- ggplot(df_phenix_mean, aes(OPDC, PPMI))+ geom_point(aes(colour = factor(S)),size=10
+                                                         ) +geom_text(aes(label=Cat),size=7,hjust=0, vjust=0) + xlim(-0.6, 0.6)+ ylim(-0.6,0.6)+ geom_abline(intercept =0, slope = 1)+theme(axis.text=element_text(size=10),axis.title=element_text(size=18))+ theme(legend.position="none")
+p
+p_phenix<-p
+cor.test(df_phenix_mean$OPDC,df_phenix_mean$PPMI)
+
+```
+
+###  Phenix 0
+```{r Phenix correlation ,echo=FALSE}
+df_phenix0_odpc<-correlation_lat_var(out$imp,phenix0_odpc,3,cat_opdc)
+df_phenix0_ppmi<-correlation_lat_var(out2$imp,phenix0_ppmi,3,cat_ppmi_red)
+
+df_phenix0<-rbind(df_phenix0_odpc,df_phenix0_ppmi)
+df_phenix0$cohort<-c(rep("ODPC",length(row.names(df_phenix0_odpc))),rep("PPMI",length(row.names(df_phenix0_ppmi))))
+df_phenix0$S<-paste0(df_phenix0$Underly_Variable,sep="_",df_phenix0$Cat)
+df_phenix0_mean<-correlation_table(df_phenix0,cat_ppmi_red)
+colnames(df_phenix0_mean)[3]<-"OPDC"
+p <- ggplot(df_phenix0_mean, aes(OPDC, PPMI))+ geom_point(aes(colour = factor(S)),size=10
+                                                         ) +geom_text(aes(label=Cat),size=7,hjust=0, vjust=0) + xlim(-0.6, 0.6)+ ylim(-0.6,0.6)+ geom_abline(intercept =0, slope = 1)+theme(axis.text=element_text(size=10),axis.title=element_text(size=18))+ theme(legend.position="none")
+p
+p_phenix0<-p
+cor.test(df_phenix0_mean$OPDC,df_phenix0_mean$PPMI)
+
+```
+
+###  ICA
+```{r ICA correlation ,echo=FALSE}
+df_ica_opdc<-correlation_lat_var(out$imp,ica_opdc,3,cat_opdc)
+df_ica_ppmi<-correlation_lat_var(out2$imp,ica_ppmi,3,cat_ppmi_red)
+
+df_ica<-rbind(df_ica_opdc,df_ica_ppmi)
+df_ica$cohort<-c(rep("ODPC",length(row.names(df_ica_opdc))),rep("PPMI",length(row.names(df_ica_ppmi))))
+df_ica$S<-paste0(df_ica$Underly_Variable,sep="_",df_ica$Cat)
+df_ica_mean<-correlation_table(df_ica,cat_ppmi_red)
+colnames(df_ica_mean)[3]<-"OPDC"
+p <- ggplot(df_ica_mean, aes(OPDC, PPMI))+ geom_point(aes(colour = factor(S)),size=10
+                                                         ) +geom_text(aes(label=Cat),size=7,hjust=0, vjust=0) + xlim(-0.6, 0.6)+ ylim(-0.6,0.6)+ geom_abline(intercept =0, slope = 1)+theme(axis.text=element_text(size=10),axis.title=element_text(size=18))+ theme(legend.position="none")
+p
+p_ica<-p
+cor.test(df_ica_mean$OPDC,df_ica_mean$PPMI)
+```
+
+###  MDS
+```{r MDS correlation ,echo=FALSE}
+df_mds_odpc<-correlation_lat_var(out$imp,mds_odpc,3,cat_opdc)
+df_mds_ppmi<-correlation_lat_var(out2$imp,mds_ppmi,3,cat_ppmi_red)
+
+df_mds<-rbind(df_mds_odpc,df_mds_ppmi)
+df_mds$cohort<-c(rep("ODPC",length(row.names(df_mds_odpc))),rep("PPMI",length(row.names(df_mds_ppmi))))
+df_mds$S<-paste0(df_mds$Underly_Variable,sep="_",df_mds$Cat)
+df_mds_mean<-correlation_table(df_mds,cat_ppmi_red)
+colnames(df_mds_mean)[3]<-"OPDC"
+p <- ggplot(df_mds_mean, aes(OPDC, PPMI))+ geom_point(aes(colour = factor(S)),size=10
+                                                         ) +geom_text(aes(label=Cat),size=7,hjust=0, vjust=0) + xlim(-0.6, 0.6)+ ylim(-0.6,0.6)+ geom_abline(intercept =0, slope = 1)+theme(axis.text=element_text(size=10),axis.title=element_text(size=18))+ theme(legend.position="none")
+
+p
+p_mds<-p
+cor.test(df_mds_mean$OPDC,df_mds_mean$PPMI)
+```
+
+###  PCA
+```{r PCA correlation ,echo=FALSE}
+df_pca_odpc<-correlation_lat_var(out$imp,pca_odpc,3,cat_opdc)
+df_pca_ppmi<-correlation_lat_var(out2$imp,pca_ppmi,3,cat_ppmi_red)
+
+df_pca<-rbind(df_pca_odpc,df_pca_ppmi)
+df_pca$cohort<-c(rep("ODPC",length(row.names(df_pca_odpc))),rep("PPMI",length(row.names(df_pca_ppmi))))
+df_pca$S<-paste0(df_pca$Underly_Variable,sep="_",df_pca$Cat)
+df_pca_mean<-correlation_table(df_pca,cat_ppmi_red)
+colnames(df_pca_mean)[3]<-"OPDC"
+p <- ggplot(df_pca_mean, aes(OPDC, PPMI))+ geom_point(aes(colour = factor(S)),size=10
+                                                         ) +geom_text(aes(label=Cat),size=7,hjust=0, vjust=0) + xlim(-0.6, 0.6)+ ylim(-0.6,0.6)+ geom_abline(intercept =0, slope = 1)+theme(axis.text=element_text(size=10),axis.title=element_text(size=18))+ theme(legend.position="none")
+p
+p_pca<-p
+cor.test(df_pca_mean$OPDC,df_pca_mean$PPMI)
+```

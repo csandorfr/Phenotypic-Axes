@@ -1,0 +1,57 @@
+---
+title: "Conditional analysis variance 2 "
+author: "Cynthia Sandor"
+date: 'Last update: `r date()`'
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 5
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+      toc_depth: 5
+  pdf_document:
+    toc: yes
+---
+
+
+
+
+```{r get data,echo=FALSE}
+
+rm(list = ls())
+df_var2_format<-read.table("/Users/dpag0499/OneDriveCardiffUniversity/Documents/PROJECTS/gemma_R/src/disease_axis/cond_proportion_variance_ad_ibd_uc/df_var-cond2.txt",h=T)
+df_var2_format$diff<-df_var2_format$Var-df_var2_format$Var_disease.x
+```
+
+
+```{r plot,echo=FALSE}
+library(ggplot2)
+
+ggheatmap2 <- ggplot(df_var2_format, aes(Disease1,Disease2, fill = diff))+
+  geom_tile(color = "white")+
+  facet_grid(as.character(p) ~ cohort , scales='free_x', space="free_x") +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white",
+                       midpoint = 0, limit = c(-0.30,0.25), space = "Lab",
+                       name="Variance Difference +/-") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1,size = 12, hjust = 1))+
+  geom_text(aes(label=round(diff,2)),size=4)
+
+
+```
+
+
+```{r plot,echo=FALSE}
+
+
+ggplot(df_var2_format, aes(x=Disease1,y=-diff))+
+  geom_point(aes(colour = Disease2,shape=cohort ),size=4)+theme(axis.text=element_text(size=17),axis.title=element_text(size=17))+ facet_grid( ~ as.character(p), scales='free_x', space="free_x") 
+ 
+
+
+
+```
+
+

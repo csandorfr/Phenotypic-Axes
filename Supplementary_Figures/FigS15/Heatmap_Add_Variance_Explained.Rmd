@@ -1,0 +1,110 @@
+---
+title: "Analysis of the relationship between PRS & phenotypic axis "
+author: "Cynthia Sandor"
+date: 'Last update: `r date()`'
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 5
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+      toc_depth: 5
+  pdf_document:
+    toc: yes
+---
+
+
+
+
+```{r get data,echo=FALSE}
+
+rm(list = ls())
+load("/Users/dpag0499/OneDriveCardiffUniversity/Documents/PROJECTS/gemma_R/src/disease_axis/new_proportion_variance_disease/variance_test.Rdata")
+
+```
+
+
+```{r rm V3,pval > 0,1,echo=FALSE}
+
+index_V3<-which(df_final_total_ord_red$Axis=="V3")
+df_final_total_ord_red1<-df_final_total_ord_red[-index_V3,]
+index_pval<-which(df_final_total_ord_red1$p==0.05 | df_final_total_ord_red1$p==0.1)
+df_final_total_ord_red2<-df_final_total_ord_red1[index_pval,]
+
+
+```
+
+```{r adjust swap Axis V1 V2,echo=FALSE}
+
+swap_axis<-function(combi,df_prs) {
+    n<-dim(combi)[1]
+    for (i in (1:n)) {
+    
+    p<-combi[i,1]
+    disease<-as.character(combi[i,2])
+    cohort<-as.character(combi[i,3])
+    i1<-which(df_prs$p==p & df_prs$Disease==disease & df_prs$cohort==cohort & df_prs$Axis=="V1")
+    i2<-which(df_prs$p==p & df_prs$Disease==disease & df_prs$cohort==cohort & df_prs$Axis=="V2")
+    V1<-df_prs$Var_disease[i1]
+    V2<-df_prs$Var_disease[i2]
+    if (V2 > V1) {
+      print (combi[i,])
+      df_prs$Var_disease_New[i2]<-V1
+      df_prs$Var_disease_New[i1]<-V2
+    }
+  }
+  return(df_prs)
+}
+
+df_final_total_ord_red2$Var_disease_New<-df_final_total_ord_red2$Var
+
+list_disease<-unique(as.character(df_final_total_ord_red2$Disease))
+list_p<-unique(df_final_total_ord_red2$p)
+list_cohort<-unique(as.character(df_final_total_ord_red2$cohort))
+
+test_df<-expand.grid(list_p,list_disease,list_cohort)
+
+df_final_total_ord_red3<-swap_axis(test_df,df_final_total_ord_red2)
+
+```
+
+```{r adjust Variance,echo=FALSE}
+
+adjust_axis_Var<-function(df_prs) {
+  n<-dim(df_prs)[1]
+  df<-df_prs[df_prs$cohort=="discovery",c(1,6)]
+  df_unique<-df[!duplicated(df$Axis),]
+  for (i in (1:n)) {
+
+
+    Axis<-df_prs$Axis[i]
+    Var_Total_New<-df_unique[df_unique$Axis==Axis,2]
+  
+    Var_Total<-df_prs$Var_geno[i]
+    Var_Raw<-df_prs$Var_disease_New[i]
+    Var_Corr<-(Var_Raw*Var_Total)/Var_Total_New
+    df_prs$Var_disease_New2[i]<-Var_Corr
+    df_prs$Var_geno2[i]<-Var_Total_New
+  }
+  return(df_prs)
+}
+
+df_final_total_ord_red3$Var_disease_New2<-df_final_total_ord_red3$Var_disease_New
+df_final_total_ord_red3$Var_geno2<-df_final_total_ord_red3$Var_geno
+
+df_final_total_ord_red4<-adjust_axis_Var(df_final_total_ord_red3)
+
+ggheatmap2 <- ggplot(df_final_total_ord_red4, aes(Disease,cohort, fill = diff_geno))+
+geom_tile(color = "white")+
+facet_grid(as.character(`p-value`) ~ Axis, scales='free_x', space="free_x") +
+scale_fill_gradient2(low = "blue", high = "red", mid = "white",
+midpoint = 0, limit = c(-0.30,0.30), space = "Lab",
+name="Variance +/-") +
+theme(axis.text.x = element_text(angle = 45, vjust = 1,size = 12, hjust = 1))+
+geom_text(aes(label=round(diff_geno,2)),size=4,angle=90)
+
+save(df_final_total_ord_red4,file="/Users/dpag0499/OneDriveCardiffUniversity/Documents/PROJECTS/gemma_R/src/disease_axis/new_proportion_variance_disease/df_final_total_ord_red4.Rdata")
+```

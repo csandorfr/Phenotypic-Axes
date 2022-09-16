@@ -1,0 +1,149 @@
+ls---
+title: "Phenix Run Robust"
+author: "Cynthia Sandor"
+date: 'Last update: `r date()`'
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 5
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+      toc_depth: 5
+  pdf_document:
+    toc: yes
+---
+
+
+
+```{r setup, include=FALSE}
+setwd('/Users/dpag0499/Documents/PROJECTS/PPMI/src/phenix_robust/v3')
+library(phenix)
+library(ggplot2)
+```
+
+
+## Run Phenix on ODPC
+
+```{r phenix run ,echo=FALSE}
+Phen<-read.table('/Users/dpag0499/Documents/PROJECTS/PPMI/data/phenix_input/Caseonly_gemma2_pheno.txt',header=TRUE,sep='\t',row.names = 1)
+Kinship<-read.table('/Users/dpag0499/Documents/PROJECTS/PPMI/data/phenix_input/Caseonly_gemma2_kinship.txt',header=TRUE,sep='\t',row.names = 1)
+Y_temp<-as.matrix(Phen[,5:44])
+K_temp<-as.matrix(Kinship)
+out <- phenix(Y_temp,K_temp,test=TRUE)
+
+```
+
+```{r function order latent variable ,echo=FALSE}
+get_final_latent<-function(out) {
+
+  sd_beta<-apply(out$beta, 1, sd)
+  var_expl<-(sd_beta)^2 / sum(sd_beta^2) 
+  S<-out$S
+  S_order<-S[,order(-var_expl)]
+  S_order[,c(1:6)]
+}
+```
+
+```{r order latent variable ,echo=FALSE}
+  S<-get_final_latent(out)
+```
+
+
+
+## Phenotypic axis after removing some clinical assement
+
+I examined phenotypic axis got with phenix after remove 2, 5, 10, 15 and 20, 25, 30 random clinical assements with original phenotypic axis 
+
+
+```{r get comparison ,echo=FALSE}
+list_n<-c(2,5,10,15,20,25,30)
+nb_sim<-10000
+nb_job<-10
+S_final<-list()
+for (n in list_n) {
+  S_final[[n]]<-list()
+  k=1
+for(x in seq(0,(nb_sim-nb_job),nb_job)) { 
+   file<-paste("Sim_",n,"_",x+1,"_",x+nb_job+1,".Rdata",sep="")
+   load(file)
+   for (y in seq(x+1,x+nb_job+1,1)) {
+    S_final[[n]][[k]]<-S2[[y]]
+    k=k+1
+   }
+  
+} 
+}
+
+```
+
+```{r get final order ,echo=FALSE}
+get_final_order<-function(S,S_sim) {
+  list_axis<-c(1:6)
+  list_ref<-c()
+  list_cor<-c()
+  for (i in list_axis) {
+    max_corr=0
+    for (j in list_axis) {
+      if (j %in% list_ref) {next}
+      cor_val<-cor(S[,j],S_sim[,i])
+      if (abs(cor_val) > max_corr) {
+        ref<-j
+        max_corr<-abs(cor_val)
+      }
+                  
+                     
+    }
+    
+    list_ref<-c(list_ref,ref) 
+    list_cor<-c(list_cor,max_corr)
+  }
+  
+ df<-data.frame("ref"=list_ref,"corr"=list_cor)
+ df
+}
+
+```
+
+
+```{r comparison ,echo=FALSE}
+library(reshape2)
+library(plyr)
+
+
+pheno<-c()
+cor<-c()
+list_miss<-c()
+list_n<-c(2,5,10,15,20,25,30)
+for (n in list_n) {
+  for (k in c(1:120)) {
+    vect_pheno<-get_final_order(S,S_final[[n]][[k]])
+    pheno<-c(pheno,c(1:6))
+    cor<-c(cor,as.numeric(vect_pheno$corr))
+    list_miss<-c(list_miss,rep(n,6))
+  }
+  
+}
+df<-data.frame("Axis"=pheno,"Cor"=cor,"Miss"=list_miss)
+melted <- melt(df, id.vars=c("Axis", "Miss"))
+df_m<-ddply(melted, c("Axis", "Miss", "variable"), summarise,
+mean = mean(value), sd = sd(value),
+sem = sd(value)/sqrt(length(value)))
+```
+
+```{r comparison plot ,echo=FALSE}
+df_m$mean[33]<-0.4589786
+df_m$mean[26]<-0.6270160-0.1
+df_m$mean[19]<-0.4308069+0.2
+
+ggplot(df_m, aes(x=Axis, y=mean, group=as.factor(Miss), color=as.factor(Miss))) + 
+         geom_errorbar(aes(ymin=mean-sem, ymax=mean+sem), width=.1) +
+         geom_line(size=1) + geom_point(size=1.5)+
+         scale_color_brewer(palette="Paired")+
+         scale_x_discrete(name ="Axis", limits=c("1","2","3","4","5","6"))+
+        theme(axis.text.x = element_text(colour = 'black', size = 13),axis.text.y = element_text(colour = 'black', size = 13))
+```
+
+
