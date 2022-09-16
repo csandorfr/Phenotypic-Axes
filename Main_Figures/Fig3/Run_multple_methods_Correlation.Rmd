@@ -1,0 +1,157 @@
+---
+title: "Comparison PPMI ODPC multiple methods add ICA "
+author: "Cynthia Sandor"
+date: 'Last update: `r date()`'
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 5
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+      toc_depth: 5
+  pdf_document:
+    toc: yes
+---
+
+
+```{r setup, include=FALSE}
+setwd('/Users/dpag0499/Documents/PROJECTS/PPMI/src/comparison_ppmi_odpc_multiple_approaches')
+library(phenix)
+library(ggplot2)
+library(gplots)
+library(reshape)
+load("/Users/dpag0499/Documents/PROJECTS/PPMI/data/Rdata/ppmi.Rdata")
+load("/Users/dpag0499/Documents/PROJECTS/PPMI/src/comparison_ppmi_odpc_phenix/ODPC.Rdata")
+```
+
+```{r get category, include=FALSE}
+cat_opdc<-read.table("category_opdc_red.txt",h=T,sep="\t")
+cat_ppmi<-read.table("category_ppmi.txt",h=T,sep="\t")
+```
+
+
+
+```{r functions, include=FALSE}
+
+
+
+correlation_lat_var<-function(Y,S,n_axes) {
+  n_clinical<-length(colnames(Y))
+  list_axes<-c(1:n_axes)
+  mm <- matrix(NA,n_clinical,n_axes)
+
+  for (i in 1:n_axes) {
+    for (j in 1:n_clinical) {
+      t<-cor.test(Y[,j],S[,i])
+      mm[j,i]<-as.numeric(t$estimate)
+    }
+  }
+    df_mm<-as.data.frame(mm)
+    colnames(df_mm)<-paste0("V",c(1:n_axes))
+    row.names(df_mm)<-colnames(Y)
+    df_mm$Clinical<-row.names(df_mm)
+    
+    df_mm
+}
+
+reshape_correlation<-function(df,cat){
+  df_mm<-merge(df,cat[,-c(2)],by=c("Clinical"))
+  df_mm_s<-melt(df_mm,id=c("Clinical","Cat","Sgn"))
+  df_mm_s$value2<-df_mm_s$value*df_mm_s$Sgn
+  df_mm_s
+}
+
+reshape_correlation<-function(df,cat){
+  df_mm<-merge(df,cat[,-c(2)],by=c("Clinical"))
+  df_mm_s<-melt(df_mm,id=c("Clinical","Cat","Sgn"))
+  df_mm_s$value2<-df_mm_s$value*df_mm_s$Sgn
+  df_mm_s
+}
+
+```
+
+
+
+
+
+## Compute MDS/PCA/ICA/phenix
+
+
+### Phenix
+```{r phenix ,echo=FALSE}
+phenix_odpc<-out$S
+phenix_ppmi<-out3$S
+phenix_ppmi[,2]<--phenix_ppmi[,2]
+phenix_ppmi[,3]<-phenix_ppmi[,4]
+```
+
+
+
+## Compute correlation underlying variable & phenotypic axes
+
+As PPMI and ODPC do not use the same clinical assessments, I classified into different categories:
+(1) Motors
+(2) Cognitive
+(3) Anxiety-Deepression
+(4) Autonomic
+(5) Sleep
+(6) Olfactive
+
+
+These categories have been defined by PPMI cnsortium.
+
+(1) I computed the correlation (pearson) between clinical assements with principal variable for different categories of phenotype in both cohort. 
+(2) I computed the mean of correlation by category of phenotype
+(3) I compared these correlation by category p
+
+
+
+
+###  Phenix
+
+```{r Phenix correlation ,echo=FALSE}
+## correlation
+df_phenix_odpc<-correlation_lat_var(out$imp,phenix_odpc,3)
+df_phenix_ppmi<-correlation_lat_var(out3$imp,phenix_ppmi,3)
+
+## reshape and add category
+df_phenix_odpc_r<-reshape_correlation(df_phenix_odpc,cat_opdc)
+df_phenix_ppmi_r<-reshape_correlation(df_phenix_ppmi,cat_ppmi)
+
+## compute mean
+df_phenix_odpc_mean<-ddply(df_phenix_odpc_r,~Cat+variable,summarise,mean=mean(value2))
+df_phenix_ppmi_mean<-ddply(df_phenix_ppmi_r,~Cat+variable,summarise,mean=mean(value2))
+
+## final table
+df_phenix<-change_sgn_unique_table(df_phenix_odpc_mean,df_phenix_ppmi_mean)
+
+```
+
+
+
+
+
+
+
+
+###  All Together
+```{r all analysis together correlation ,echo=FALSE}
+df_analysis<-df_phenix
+df_analysis$Method<-rep("Phenix",dim(df_phenix)[1])
+df_analysis_temp<-df_ica
+df_analysis_temp$Method<-rep("ICA",dim(df_ica)[1])
+df_analysis<-rbind(df_analysis,df_analysis_temp)
+df_analysis_temp<-df_mds
+df_analysis_temp$Method<-rep("MDS",dim(df_mds)[1])
+df_analysis<-rbind(df_analysis,df_analysis_temp)
+df_analysis_temp<-df_pca
+df_analysis_temp$Method<-rep("PCA",dim(df_pca)[1])
+df_analysis<-rbind(df_analysis,df_analysis_temp)
+
+
+```
+
+

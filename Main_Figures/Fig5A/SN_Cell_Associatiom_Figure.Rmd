@@ -1,0 +1,103 @@
+---
+title: "Test Parameters SN PD t-test true"
+author: "Cynthia Sandor"
+date: 'Last update: `r date()`'
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 5
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+      toc_depth: 5
+  pdf_document:
+    toc: yes
+  word_document:
+    toc: yes
+---
+
+
+
+```{r setup, include=FALSE}
+rm(list = ls())
+setwd("/Users/dpag0499/Dropbox (UK Dementia Research Institute)/Sandor Lab/Backup/PROJECTS/gemma_R/src/tissue_specificity")
+library(ggplot2)
+library(reshape)
+```
+
+## Collect data: MAGMA
+
+
+
+```{r collect data LDSCORE,echo=FALSE}
+
+dist<-"25"
+fraction<-"0.1"
+list_pheno<-c("AD_Jansenetal","pd","pheno1","ibd","ra","uc")
+
+list_name_pheno<-c("Alzheimer's disease","Parkinson's diease","Axis 1","Inflammatory Bowel Disease","Rheumatoid Arthritis","Ulcerative Colitis")
+list_atlas<-c("sn")
+method<-"magma"
+dir_data<-"/Users/dpag0499/Dropbox (UK Dementia Research Institute)/Sandor Lab/Backup/PROJECTS/gemma_R/src/tissue_specificity"
+
+for (atlas in list_atlas) {
+  for (i in c(1:length(list_pheno))) {
+    pheno<-list_pheno[i]
+    pheno_name<-list_name_pheno[i]
+    dir_out<-paste(dir_data,"/",method,"/",atlas,sep="")
+    file<-paste(dir_out,"/",pheno,"_",dist,"k_",fraction,"f.cell_type_results.txt",sep="")
+    df_temp<-read.table(file,sep="\t",h=T)
+    df_temp$Method<-method
+    df_temp$Atlas<-atlas
+    df_temp$Trait<-pheno_name
+    
+    if (!exists("df_final")) {
+        df_final<-df_temp
+      }
+      else {
+        df_final<-rbind(df_final,df_temp)
+      }
+}
+}
+
+```
+
+
+
+```{r format,echo=FALSE}
+df_final2_red<-df_final[,c(1,4:7)]
+colnames(df_final2_red)<-c("Cell","P","Method","Atlas","Trait")
+df_results<-df_final2_red
+
+df_results$GWA<-1
+df_results$GWA[grepl("Axis",df_results$Trait)]<-0
+df_results$Method3<-paste0(as.character(df_results$Method),"_",as.character(df_results$GWA))
+df_results$Sng<-""
+df_results$Sgn[df_results$P <0.05]<-"*"
+df_results$Sgn[df_results$P <0.007]<-"**"
+
+df_results$Method3<-paste0(as.character(df_results$Method),"_",as.character(df_results$GWA))
+
+```
+
+```{r make plot,echo=FALSE}
+list_name_pheno<-c("Axis 1","Alzheimer's disease","Parkinson's diease","Inflammatory Bowel Disease","Rheumatoid Arthritis","Ulcerative Colitis")
+df_results$Trait <- factor(df_results$Trait, levels=list_name_pheno)
+               
+ggheatmap1 <- ggplot(df_results[df_results$Atlas=="sn",], aes(factor(Trait) , Cell, fill = -log(P,10)))+
+geom_tile(color = "white")+
+scale_fill_gradient2(low = "blue", high = "red", mid = "white",
+midpoint = 0, limit = c(0,4), space = "Lab",
+name="Pearson\nCorrelation") +
+theme_minimal()+ # minimal theme
+theme(axis.text.x = element_text(angle = 45, vjust = 1,
+size = 15, hjust = 1))+
+theme(axis.text.y = element_text(size = 17))+
+  geom_text(aes(label=df_results$Sgn[df_results$Atlas=="sn"]),size=10)+
+  theme(strip.text.x = element_blank())
+
+
+
+```
